@@ -1,0 +1,12 @@
+{% extends 'inventory_app/base_template.html' %}
+
+{% block content %}
+
+<h1> {{item.name}}</h1>
+
+<p><strong>Food Category:</strong> {{item.category}}</p>
+<p><strong>Cost: </strong> {{item.cost}}</p>
+<p><strong>Amount: </strong> {{item.amount}}</p>
+
+{% endblock %}
+

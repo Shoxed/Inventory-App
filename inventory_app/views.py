@@ -1,6 +1,15 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
-# Create your views here.
+from django.views import generic
+from .models import *
+
+
+# Inventory Item Views 
+class ItemListView(generic.ListView):
+    model = Item
+
+class ItemDetailView(generic.DetailView):
+    model = Item
 
 
 def index(request):
