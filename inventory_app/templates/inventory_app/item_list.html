@@ -1,17 +1,22 @@
 {% extends 'inventory_app/base_template.html' %}
-
+{% load static %}
 
 {% block content %}
-<h1>Inventory List</h1>
-{% if item_list %}
-<ul>
-{% for item in item_list %}
-<li>
-<a href="{{item.get_absolute_url}}">{{ item.name }}</a>
-</li>
-{% endfor %}
-</ul>
-{% else %}
-<p>Inventory is empty.</p>
-{% endif %}
+  <h1>Inventory List</h1>
+  {% if item_list %}
+    <ul>
+    {% for item in item_list %}
+      <li>
+        <p> {{item.name}}   
+          <a class="btn btn-sm custom-btn" href="{{item.get_absolute_url}}">View</a>   
+          <a class="btn btn-sm custom-btn" href="{% url 'item-delete' pk=item.id %}" role="button">Delete</a>
+          <a class="btn btn-sm custom-btn" href="{% url 'item-update' pk=item.id %}" role="button">Update</a>
+        </p>
+      </li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p>Inventory is empty.</p>
+  {% endif %}
+  <a class="btn custom-btn" href="{% url 'add-item' %}" role="button">New</a>
 {% endblock %}
