@@ -1,12 +1,14 @@
 {% extends 'inventory_app/base_template.html' %}
 
 {% block content %} 
-<h2> {{item.name}} </h2>
+<h2> Delete: {{item.name}} </h2>
 <form action="" method="POST">
     <p>Are you sure you would to delete item?</p>
    
    {% csrf_token %}
+   <div class="container-fluid">
    <a href="{% url 'inventory' %}" class="btn custom-btn">Cancel</a>
    <input class="btn custom-btn" type="submit" name="Submit">
    </form>
+</div>
 {% endblock %}

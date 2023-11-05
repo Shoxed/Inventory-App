@@ -12,13 +12,19 @@
     body, .navbar {
       background-color: #ff5c1c;
     }
+    .center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      width: 50%;
+    }
     .container-fluid {
       background-color: #ff5c1c;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 10vh;
+      height: -80vh;
     }
     .navbar {
       margin-top: 15vh; 
@@ -34,36 +40,32 @@
 </head>
 
 <body>
-  <div class="container-fluid">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg" style="background-color: #ff5c1c;">
-      <div>
-        {% block logo %}
-          <img src="{% static 'images/bbq_logo.gif' %}" alt="BBQ Logo" style="width: 250px; margin-bottom: -50px;">
-        {% endblock %}
-      </div>
-      <div class="container-fluid">
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav">
-            <li class="nav-item">
-              <a class="nav-link active" aria-current="page" href="{% url 'index' %}"><strong>Home</strong></a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'inventory' %}"><strong>Inventory</strong></a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#"><strong>Menu 2</strong></a>
-            </li>
+  <img src="{% static 'images/bbq_logo.gif' %}" alt="BBQ Logo" class = "center" style="width: 350px; margin-bottom: -220px;">
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg" style="background-color: #ff5c1c;">
+    <div class="container-fluid">
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{% url 'index' %}"><strong>Home</strong></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" aria-current="page" href="{% url 'inventory' %}"><strong>Inventory</strong></a>
+          </li>
+          <li clsss="nav-tem">
+            <a class="nav-link active" aria-current="page" href="#REF"><strong>Orders</strong></a>
+          </li>
           </ul>
-        </div>
       </div>
-    </nav>
+    </div>
+  </nav>
 
-    <!-- add block content from html template -->
+  <!-- add block content from html template -->
+<div class = "container-fluid">
     {% block content %}
 
     {% endblock %}
-  </div>
+</div>
 </body>
 </html>
