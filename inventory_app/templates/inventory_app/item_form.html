@@ -4,7 +4,7 @@
 
 <!-- Replace block content in base_template.html -->
 {% block content %}
-
+<h1>Add New Item:</h1>
 
 <form action="" method="POST">
 
@@ -13,7 +13,8 @@
 <table>
 {{ form.as_table }}
 </table>
-<input type="submit" name="Submit">
+<a class="btn custom-btn" href="{% url 'inventory' %}">Cancel</a>
+<button class="btn custom-btn" type="submit">Submit</button>
 </form>
 
 
