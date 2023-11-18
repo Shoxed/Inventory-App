@@ -20,3 +20,9 @@ class Item(models.Model):
     
     def get_absolute_url(self):
         return reverse('item-detail', args=[str(self.id)])
+
+
+class Employee(models.Model):
+    name = models.CharField(max_length = 200)
+    emply_id = models.IntegerField()
+    position = models.CharField(max_length = 200)

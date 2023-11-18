@@ -1,15 +1,34 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.views import generic
+from django.contrib import messages
+from django.contrib.auth.models import Group
 from .models import *
-from .forms import ItemForm
+from .forms import ItemForm, CreateUserForm, EmployeeForm
+from django.contrib.auth.decorators import login_required
+from .decorators import allowed_users
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+@login_required(login_url='login')
+@allowed_users(allowed_roles='employee')
+def userPage(request):
+    employee = request.user.employee
+    form = EmployeeForm(instance = employee)
+    print('employee', employee)
+    if request.method == 'POST':
+        form = EmployeeForm(request.POST, request.FILES, instance = employee)
+        if form.is_valid():
+            form.save
+    
+    context = {'form': form}
+    return render(request, 'inventory_app/user.html', context)
 
 
 # Inventory Item Views 
-class ItemListView(generic.ListView):
+class ItemListView(LoginRequiredMixin, generic.ListView):
     model = Item
 
-class ItemDetailView(generic.DetailView):
+class ItemDetailView(LoginRequiredMixin, generic.DetailView):
     model = Item
 
 def addItem(request):
@@ -64,3 +83,19 @@ def index(request):
 # Render index.html
     return render( request, 'inventory_app/index.html')
 
+def registerPage(request): 
+    form = CreateUserForm(request.POST)
+
+    if form.is_valid():
+        user = form.save()
+        username = form.cleaned_data.get('username')
+        group = Group.objects.get(name='employee')
+        user.groups.add(group)
+        employee = Employee.objects.create(user=user)
+        employee.save()
+
+        messages.success(request, 'Account was created for ' + username)
+        return redirect('login')
+    
+    context = {'form': form}
+    return render(request, 'registration/register.html', context)
