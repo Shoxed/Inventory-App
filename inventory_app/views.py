@@ -9,40 +9,51 @@ from django.contrib.auth.decorators import login_required
 from .decorators import allowed_users
 from django.contrib.auth.mixins import LoginRequiredMixin
 
+
+def index(request):
+# Render index.html
+    return render( request, 'inventory_app/index.html')
+
+class ItemListView (generic.ListView):
+    model = Item
+
+class ItemDetailView(generic.DetailView):
+    model = Item
+
+class EmployeeDetailView(generic.DetailView):
+    template_name = 'registration/employee_detail.html'
+    context_object_name = 'employee'
+    model = Employee
+
+# Views that require login credentials. 
 @login_required(login_url='login')
 @allowed_users(allowed_roles='employee')
-def userPage(request):
+def userUpdate(request, pk):
     employee = request.user.employee
-    form = EmployeeForm(instance = employee)
-    print('employee', employee)
+    form = EmployeeForm(instance=employee)
+
     if request.method == 'POST':
-        form = EmployeeForm(request.POST, request.FILES, instance = employee)
+        form = EmployeeForm(request.POST, request.FILES, instance=employee)
         if form.is_valid():
-            form.save
+            form.save()
+            messages.success(request, 'Employee information updated successfully')
+            return redirect('user_page', pk=pk)  # Pass the pk parameter in the redirection
     
     context = {'form': form}
-    return render(request, 'inventory_app/user.html', context)
-
-
-# Inventory Item Views 
-class ItemListView(LoginRequiredMixin, generic.ListView):
-    model = Item
-
-class ItemDetailView(LoginRequiredMixin, generic.DetailView):
-    model = Item
+    return render(request, 'registration/user_update.html', context)
 
 def addItem(request):
     form = ItemForm()
 
     if request.method == 'POST':
-        # Create a new dictionary with form data and portfolio_id
+        # Create a new dictionary with form data
         item_data = request.POST.copy()
         
         form = ItemForm(item_data)
         if form.is_valid():
             # Save the form without committing to the database
             item = form.save(commit=False)
-            # Set the portfolio relationship
+            # Save item to database
             item.save()
 
             # Redirect back to the inventory page
@@ -78,11 +89,6 @@ def updateItem(request, pk):
     context={'form': form, 'item': item}
     return render(request, 'inventory_app/item_update.html', context)
 
-
-def index(request):
-# Render index.html
-    return render( request, 'inventory_app/index.html')
-
 def registerPage(request): 
     form = CreateUserForm(request.POST)
 
@@ -91,11 +97,10 @@ def registerPage(request):
         username = form.cleaned_data.get('username')
         group = Group.objects.get(name='employee')
         user.groups.add(group)
-        employee = Employee.objects.create(user=user)
-        employee.save()
-
+        employee = Employee.objects.create(user = user)
         messages.success(request, 'Account was created for ' + username)
         return redirect('login')
+
     
     context = {'form': form}
     return render(request, 'registration/register.html', context)

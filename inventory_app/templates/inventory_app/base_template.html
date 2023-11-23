@@ -56,6 +56,15 @@
           <li class="nav-item">
             <a class="nav-link active" aria-current="page" href="{% url 'inventory' %}"><strong>Inventory</strong></a>
           </li>
+          <li class="nav-item">
+            {% if user.is_authenticated %}
+            {% with employee=user.employee %}
+                <a class="nav-link active" aria-current="page" href="{% url 'user_page' pk=employee.pk %}"><strong>Account</strong></a>
+            {% endwith %}
+        {% else %}
+            <a class="nav-link active" aria-current="page" href="{% url 'login' %}?next={{ request.path }}"><strong>Login</strong></a>
+        {% endif %}
+          </li>
           <li clsss="nav-tem">
             {% if user.is_authenticated %}
             <a class="nav-link active" aria-current="page" href="{% url 'logout' %}?next={{ request.path }}"><strong>Logout {{user}}</strong></a>

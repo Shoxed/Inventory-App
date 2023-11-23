@@ -9,8 +9,11 @@ urlpatterns = [
     path('inventory/delete_item/<int:pk>/', views.deleteItem, name='item-delete'),
     path('inventory/update_item/<int:pk>/', views.updateItem, name = 'item-update'),
 
+    
+
     #user authentication 
     path('accounts/', include('django.contrib.auth.urls')), 
     path('accounts/register/', views.registerPage, name = 'register_page'),
-    path('user/', views.userPage, name = 'user_page'),
+    path('user/<int:pk>/', views.EmployeeDetailView.as_view(),  name = 'user_page'),
+    path('user/update/<int:pk>/', views.userUpdate, name = 'user_update'),
 ]

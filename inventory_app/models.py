@@ -1,5 +1,6 @@
 from django.db import models
 from django.urls import reverse
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -23,6 +24,9 @@ class Item(models.Model):
 
 
 class Employee(models.Model):
-    name = models.CharField(max_length = 200)
-    emply_id = models.IntegerField()
-    position = models.CharField(max_length = 200)
+    user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    position = models.CharField(max_length=200)
+
+    def get_absolute_url(self):
+        return reverse('user_page', args=[str(self.user_id)])

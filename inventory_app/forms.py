@@ -2,6 +2,7 @@ from django.forms import ModelForm
 from .models import Item, Employee
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django import forms
 
 
 #create class for item form
@@ -13,7 +14,7 @@ class ItemForm(ModelForm):
 class EmployeeForm(ModelForm):
     class Meta: 
         model = Employee
-        fields = ['name', 'emply_id', 'position']
+        fields = '__all__'
         exclude = ['user']
 
 
