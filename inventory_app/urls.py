@@ -9,7 +9,7 @@ urlpatterns = [
     path('inventory/delete_item/<int:pk>/', views.deleteItem, name='item-delete'),
     path('inventory/update_item/<int:pk>/', views.updateItem, name = 'item-update'),
 
-    
+    path('download-to-excel/', views.download_to_excel, name='download-to-excel'),
 
     #user authentication 
     path('accounts/', include('django.contrib.auth.urls')), 

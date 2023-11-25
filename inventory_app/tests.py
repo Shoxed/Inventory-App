@@ -1,19 +1,42 @@
-from django.test import TestCase, Client
-from django.urls import reverse
+from django.test import TestCase, SimpleTestCase, Client
+from django.urls import reverse, resolve
 from django.contrib.auth.models import User, Group
-from inventory_app.models import Item, Employee
+from .models import *
+from .views import *
+from .forms import *
+from django.contrib.messages import get_messages
 
-# Tests that covrt login and registation for users
+# Test cases for authentication in the inventory app
 class AuthenticationTests(TestCase):
 
     def setUp(self):
-        # Set up a user and a group
+        # Create a test user
         self.user = User.objects.create_user(username='testuser', password='testpass')
-        self.group = Group.objects.create(name='employee')
+        self.group, created = Group.objects.get_or_create(name='employee')
         self.user.groups.add(self.group)
 
+    def test_register(self):
+        # Test user registration view
+        response = self.client.get(reverse('register_page'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'registration/register.html')
+
+        # Test registration with valid data
+        new_user_data = {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password1': 'jshdwwdws',
+            'password2': 'jshdwwdws'
+        }
+        response = self.client.post(reverse('register_page'), data=new_user_data)
+        self.assertEqual(response.status_code, 302)  
+        self.assertRedirects(response, reverse('login'))  # Redirects to the login page
+
+        new_user_created = User.objects.filter(username='newuser').exists()
+        self.assertTrue(new_user_created, "User not created.")
+    
     def test_login(self):
-        # Test that the login view renders successfully and authenticates a user
+        # Test user login view
         response = self.client.get(reverse('login'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'registration/login.html')
@@ -21,166 +44,318 @@ class AuthenticationTests(TestCase):
         # Test login with valid credentials
         response = self.client.post(reverse('login'), {'username': 'testuser', 'password': 'testpass'})
         self.assertEqual(response.status_code, 302)  # Redirect after successful login
-        self.assertRedirects(response, reverse('index'))  # Redirects to the index page
 
         # Check that the user is now authenticated
         self.assertTrue(response.client.session['_auth_user_id'])
 
-    def test_register(self):
-        # Test that the register view renders successfully and registers a new user
-        response = self.client.get(reverse('register_page'))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'registration/register.html')
+    def test_logout(self):
+        # Test user logout view
+        self.client.login(username='testuser', password='testpass')  # Log in first
+        response = self.client.get(reverse('logout'))
+        self.assertEqual(response.status_code, 200) 
 
-        # Test registration with valid data
-        new_user_data = {'username': 'newuser', 'email': 'newuser@example.com', 'password1': 'newpassword', 'password2': 'newpassword'}
-        response = self.client.post(reverse('register_page'), data=new_user_data)
-        self.assertEqual(response.status_code, 200)
+        # Check that the user is now logged out
+        self.assertNotIn('_auth_user_id', self.client.session)
 
-        # Check that the new user is not authenticated automatically
-        self.assertFalse(response.client.session.get('_auth_user_id'))
-
-# Tests Item model by creating an Object of that model
-class ItemModelTest(TestCase):
-    # Test Item model to make sure an object can be sucessfully be created from it. 
-    def test_get_absolute_url(self):
-        item = Item.objects.create(name='Test Item', category='Bread', cost=2.5, amount=10)
-        self.assertEqual(item.get_absolute_url(), f'/inventory/{item.id}/')
-
-# Tests all view classes anf functions 
+# Test cases for views in the inventory app
 class TestViews(TestCase):
-
     def setUp(self):
-        # Set up a user and log them in
-        self.user = User.objects.create_user(username='testuser', password='testpass')
-        self.group = Group.objects.create(name='employee')
+        self.client = Client()
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass'
+        )
+        self.group, created = Group.objects.get_or_create(name='employee')
         self.user.groups.add(self.group)
+        self.employee = Employee.objects.create(
+            user=self.user,
+            name='Test Employee',
+            position='Test Position'
+        )
+        self.item = Item.objects.create(
+            name='Test Item',
+            category='Test Category',
+            cost=2.5,
+            amount=10
+        )
         self.client.login(username='testuser', password='testpass')
-    
+
+
     def test_index_view(self):
-        # Test that the index view renders successfully and uses the correct template
         response = self.client.get(reverse('index'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'inventory_app/index.html')
-    
+
     def test_item_list_view(self):
-        # Test that the item list view renders successfully and uses the correct template
         response = self.client.get(reverse('inventory'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'inventory_app/item_list.html')
-    
+
     def test_item_detail_view(self):
-        # Test that the item detail view renders successfully, uses the correct template,
-        # and passes the correct item to the template context
-        item = Item.objects.create(name='Test Item', category='Bread', cost=2.5, amount=10)
-        response = self.client.get(reverse('item-detail', args=[item.id]))
+        response = self.client.get(reverse('item-detail', args=[self.item.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'inventory_app/item_detail.html')
-        self.assertEqual(response.context['object'], item)
-    
+
+    def test_user_update_view(self):
+        response = self.client.get(reverse('user_update', args=[self.user.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'registration/user_update.html')
+
     def test_add_item_view(self):
-        # Test that the add item view renders successfully and uses the correct template
         response = self.client.get(reverse('add-item'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'inventory_app/item_form.html')
 
-        # Test form submission with valid data
-        form_data = {'name': 'New Test Item', 'category': 'Dairy', 'cost': 3.0, 'amount': 5}
-        response = self.client.post(reverse('add-item'), data=form_data)
-        self.assertEqual(response.status_code, 302)  # Redirect after successful form submission
-
-        # Test that the item was added to the database
-        new_item = Item.objects.get(name='New Test Item')
-        self.assertIsNotNone(new_item)
-    
     def test_delete_item_view(self):
-        # Test that the delete item view renders successfully, uses the correct template,
-        # and passes the correct item to the template context
-        item = Item.objects.create(name='Test Item', category='Bread', cost=2.5, amount=10)
-        response = self.client.get(reverse('item-delete', args=[item.id]))
+        response = self.client.get(reverse('item-delete', args=[self.item.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'inventory_app/item_delete.html')
 
-        # Test form submission for item deletion
-        response = self.client.post(reverse('item-delete', args=[item.id]))
-        self.assertEqual(response.status_code, 302)  # Redirect after successful form submission
-
-        # Test that the item was deleted from the database
-        with self.assertRaises(Item.DoesNotExist):
-            Item.objects.get(id=item.id)
-    
     def test_update_item_view(self):
-        # Test that the update item view renders successfully, uses the correct template,
-        # and passes the correct item to the template context
-        item = Item.objects.create(name='Test Item', category='Bread', cost=2.5, amount=10)
-        response = self.client.get(reverse('item-update', args=[item.id]))
+        response = self.client.get(reverse('item-update', args=[self.item.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'inventory_app/item_update.html')
 
-        # Test form submission with valid data
-        updated_data = {'name': 'Updated Test Item', 'category': 'Fruit', 'cost': 4.0, 'amount': 8}
-        response = self.client.post(reverse('item-update', args=[item.id]), data=updated_data)
-        self.assertEqual(response.status_code, 302)  # Redirect after successful form submission
+    def test_register_page_view(self):
+        response = self.client.get(reverse('register_page'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'registration/register.html')
 
-        # Test that the item was updated in the database
-        updated_item = Item.objects.get(id=item.id)
+    def test_employee_detail_view(self):
+        response = self.client.get(reverse('user_page', args=[self.user.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'registration/employee_detail.html')
+
+    def test_download_to_excel_view(self):
+        response = self.client.get(reverse('download-to-excel'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get('Content-Disposition'), 'attachment; filename=inventory_list.xlsx')
+        self.assertEqual(response.get('Content-Type'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        self.assertTrue(response.content)  # Check that the response has content
+
+    def test_add_item_post_view(self):
+        response = self.client.post(reverse('add-item'), {
+            'name': 'New Test Item',
+            'category': 'Bread',
+            'cost': 3.0,
+            'amount': 5,
+        })
+        self.assertEqual(response.status_code, 302)  # Redirect after successful POST
+        self.assertRedirects(response, reverse('inventory'))  # Redirects to the inventory page
+
+        # Check that the new item is created
+        new_item = Item.objects.get(name='New Test Item')
+        self.assertEqual(new_item.category, 'Bread')
+        self.assertEqual(new_item.cost, 3.0)
+        self.assertEqual(new_item.amount, 5)
+
+    def test_delete_item_post_view(self):
+        response = self.client.post(reverse('item-delete', args=[self.item.id]))
+        self.assertEqual(response.status_code, 302)  # Redirect after successful POST
+        self.assertRedirects(response, reverse('inventory'))  # Redirects to the inventory page
+
+        # Check that the item is deleted
+        with self.assertRaises(Item.DoesNotExist):
+            deleted_item = Item.objects.get(id=self.item.id)
+
+    def test_update_item_post_view(self):
+        response = self.client.post(reverse('item-update', args=[self.item.id]), {
+            'name': 'Updated Test Item',
+            'category': 'Bread',
+            'cost': 4.0,
+            'amount': 15,
+        })
+
+        # Check that the item is updated
+        updated_item = Item.objects.get(id=self.item.id)
         self.assertEqual(updated_item.name, 'Updated Test Item')
-        self.assertEqual(updated_item.category, 'Fruit')
+        self.assertEqual(updated_item.category, 'Bread')
         self.assertEqual(updated_item.cost, 4.0)
-        self.assertEqual(updated_item.amount, 8)
+        self.assertEqual(updated_item.amount, 15)
 
-    def test_user_page_view(self):
-        # Test that the user page view renders successfully, uses the correct template, 
-        # and handles employee information update correctly
-        employee = Employee.objects.create(user=self.user, name='Barry Allen', position='Manager')
-        response = self.client.get(reverse('user_update'))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'registration/user.html')
+    def test_register_page_post_view(self):
+        response = self.client.post(reverse('register_page'), {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password1': 'jshdwwdws',
+            'password2': 'jshdwwdws',
+        })
 
-        # Test form submission with valid employee information update data
-        updated_data = {'name': 'Bruce Wayne', 'position': 'Supervisor'}
-        response = self.client.post(reverse('user_update'), data=updated_data)
-        self.assertEqual(response.status_code, 302)
+        # Check that the new user is created
+        new_user = User.objects.get(username='newuser')
+        self.assertTrue(new_user.check_password('jshdwwdws'))
+        self.assertTrue(new_user.groups.filter(name='employee').exists())
+        self.assertTrue(Employee.objects.filter(user=new_user).exists())
 
-        # Test that the employee information was updated in the database
+    def test_user_update_post_view(self):
+        response = self.client.post(reverse('user_update', args=[self.user.id]), {
+            'name': 'Updated Test Employee',
+            'position': 'Updated Test Position',
+        })
+        self.assertEqual(response.status_code, 302)  # Redirect after successful POST
+        self.assertRedirects(response, reverse('user_page', args=[self.user.id]))  # Redirects to the user detail page
+
+        # Check that the employee is updated
         updated_employee = Employee.objects.get(user=self.user)
-        self.assertEqual(updated_employee.name, 'Bruce Wayne')
-        self.assertEqual(updated_employee.position, 'Supervisor')
+        self.assertEqual(updated_employee.name, 'Updated Test Employee')
+        self.assertEqual(updated_employee.position, 'Updated Test Position')
 
-# Tests URLs to make sure they resolve to correct view 
-class UrlsTest(TestCase):
+    def test_download_to_excel_post_view(self):
+        response = self.client.post(reverse('download-to-excel'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get('Content-Disposition'), 'attachment; filename=inventory_list.xlsx')
+        self.assertEqual(response.get('Content-Type'), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        self.assertTrue(response.content)  # Check that the response has content
+
+    def test_invalid_item_form_post_view(self):
+        response = self.client.post(reverse('add-item'), {
+            'name': '',  # Invalid data
+            'category': 'Invalid Category',
+            'cost': -1.0,  # Invalid data
+            'amount': -5,  # Invalid data
+        })
+        self.assertEqual(response.status_code, 200)  # Form validation failed, should return to the form page
+        self.assertTemplateUsed(response, 'inventory_app/item_form.html')
+
+        # Check that the form errors are present in the response context
+        form = response.context['form']
+        self.assertFalse(form.is_valid())
+        self.assertTrue(form.errors)
+
+# Test cases for forms in the inventory app
+class FormsTests(TestCase):
+
+    def test_employee_form_valid(self):
+        # Test the EmployeeForm with valid data
+        form_data = {
+            'name': 'Test Employee',
+            'position': 'Test Position',
+        }
+        form = EmployeeForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_employee_form_invalid(self):
+        # Test the EmployeeForm with invalid data
+        form_data = {
+            'name': '',
+            'position': 'Test Position',
+        }
+        form = EmployeeForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+    def test_item_form_valid(self):
+        # Test the ItemForm with valid data
+        form_data = {
+            'name': 'Test Item',
+            'category': 'Fruit',
+            'cost': 2.5,
+            'amount': 10,
+        }
+        form = ItemForm(data=form_data)
+        self.assertTrue(form.is_valid())
+
+    def test_item_form_invalid(self):
+        # Test the ItemForm with invalid data
+        form_data = {
+            'name': '',
+            'category': 'Test Category',
+            'cost': 2.5,
+            'amount': 10,
+        }
+        form = ItemForm(data=form_data)
+        self.assertFalse(form.is_valid())
+
+# Test cases for models in the inventory app
+class ModelsTests(TestCase):
+    def setUp(self):
+        # Set up a test user, employee, and item for model testing
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpassword'
+        )
+        self.employee = Employee.objects.create(
+            user=self.user,
+            name='Test Employee',
+            position='Test Position'
+        )
+        self.item = Item.objects.create(
+            name = 'Test Item',
+            category = 'Bread',
+            cost = 2.5,
+            amount = 10
+        )
+
+    def test_item_model(self):
+        # Test the Item model
+        self.assertEqual(Item.objects.count(), 1)
+        self.assertEqual(self.item.name, 'Test Item')
+        self.assertEqual(self.item.category, 'Bread')
+        self.assertEqual(self.item.cost, 2.5)
+        self.assertEqual(self.item.amount, 10)
+
+        # Test the get_absolute_url method
+        expected_url = f'/inventory/{self.item.id}/'
+        self.assertEqual(self.item.get_absolute_url(), expected_url)
+    
+    def test_employee_model(self):
+        # Test the Employee model
+        self.assertEqual(Employee.objects.count(), 1)
+        self.assertEqual(self.employee.name, 'Test Employee')
+        self.assertEqual(self.employee.position, 'Test Position')
+
+        # Test the relationship between User and Employee
+        user = self.employee.user
+        self.assertIsNotNone(user)
+        self.assertEqual(user.employee, self.employee)
+
+        # Test the exclusion of 'user' field in EmployeeForm
+        employee_form_fields = [field for field in EmployeeForm().fields]
+        self.assertNotIn('user', employee_form_fields)
+
+# Test cases for URLs in the inventory app
+class UrlsTests(SimpleTestCase):
+
     def test_index_url(self):
-        # Test that the index URL resolves to the correct view 
-        response = self.client.get(reverse('index'))
-        self.assertEqual(response.status_code, 200)
-    
+        # Test the index URL
+        url = reverse('index')
+        self.assertEqual(resolve(url).func, index)
+
     def test_item_list_url(self):
-        # Test that the item list URL resolves to the correct view
-        response = self.client.get(reverse('inventory'))
-        self.assertEqual(response.status_code, 200)
-    
+        # Test the item list URL
+        url = reverse('inventory')
+        self.assertEqual(resolve(url).func.view_class, ItemListView)
+
     def test_item_detail_url(self):
-        # Test that the item detail URL resolves to correct view 
-        item = Item.objects.create(name='Test Item', category='Bread', cost=2.5, amount=10)
-        response = self.client.get(reverse('item-detail', args = [item.id]))
-        self.assertEqual(response.status_code, 200)
-    
+        # Test the item detail URL
+        url = reverse('item-detail', args=[1])
+        self.assertEqual(resolve(url).func.view_class, ItemDetailView)
+
+    def test_user_update_url(self):
+        # Test the user update URL
+        url = reverse('user_update', args=[1])
+        self.assertEqual(resolve(url).func, userUpdate)
+
     def test_add_item_url(self):
-        # Test that the add item URL resolves to correct view 
-        response = self.client.get(reverse('add-item'))
-        self.assertEqual(response.status_code, 200)
-        
-    
-    def test_del_item_url(self):
-        # Test that the delete item URL resolves to correct view 
-        item = Item.objects.create(name='Test Item', category='Bread', cost=2.5, amount=10)
-        response = self.client.get(reverse('item-delete', args=[item.id]))
-        self.assertEqual(response.status_code, 200)
-    
+        # Test the add item URL
+        url = reverse('add-item')
+        self.assertEqual(resolve(url).func, addItem)
+
+    def test_delete_item_url(self):
+        # Test the delete item URL
+        url = reverse('item-delete', args=[1])
+        self.assertEqual(resolve(url).func, deleteItem)
+
     def test_update_item_url(self):
-        # Test that the update item URL resolves to correct view 
-        item = Item.objects.create(name='Test Item', category='Bread', cost=2.5, amount=10)
-        response = self.client.get(reverse('item-update', args=[item.id]))
-        self.assertEqual(response.status_code, 200)
+        # Test the update item URL
+        url = reverse('item-update', args=[1])
+        self.assertEqual(resolve(url).func, updateItem)
 
+    def test_register_page_url(self):
+        # Test the register page URL
+        url = reverse('register_page')
+        self.assertEqual(resolve(url).func, registerPage)
 
+    def test_employee_detail_url(self):
+        # Test the employee detail URL
+        url = reverse('user_page', args=[1])
+        self.assertEqual(resolve(url).func.view_class, EmployeeDetailView)

@@ -8,6 +8,7 @@ from .forms import ItemForm, CreateUserForm, EmployeeForm
 from django.contrib.auth.decorators import login_required
 from .decorators import allowed_users
 from django.contrib.auth.mixins import LoginRequiredMixin
+import pandas as pd
 
 
 def index(request):
@@ -19,11 +20,6 @@ class ItemListView (generic.ListView):
 
 class ItemDetailView(generic.DetailView):
     model = Item
-
-class EmployeeDetailView(generic.DetailView):
-    template_name = 'registration/employee_detail.html'
-    context_object_name = 'employee'
-    model = Employee
 
 # Views that require login credentials. 
 @login_required(login_url='login')
@@ -42,6 +38,8 @@ def userUpdate(request, pk):
     context = {'form': form}
     return render(request, 'registration/user_update.html', context)
 
+@login_required(login_url='login')
+@allowed_users(allowed_roles='employee')
 def addItem(request):
     form = ItemForm()
 
@@ -64,6 +62,8 @@ def addItem(request):
     return render(request, 'inventory_app/item_form.html', context)
 
 
+@login_required(login_url='login')
+@allowed_users(allowed_roles='employee')
 def deleteItem(request, pk):
     item = Item.objects.get(pk=pk)
 
@@ -75,6 +75,8 @@ def deleteItem(request, pk):
     return render(request, 'inventory_app/item_delete.html', context)
 
 
+@login_required(login_url='login')
+@allowed_users(allowed_roles='employee')
 def updateItem(request, pk):
     item = Item.objects.get(pk=pk)
     form = ItemForm(instance=item)
@@ -88,6 +90,7 @@ def updateItem(request, pk):
 
     context={'form': form, 'item': item}
     return render(request, 'inventory_app/item_update.html', context)
+
 
 def registerPage(request): 
     form = CreateUserForm(request.POST)
@@ -104,3 +107,32 @@ def registerPage(request):
     
     context = {'form': form}
     return render(request, 'registration/register.html', context)
+
+class EmployeeDetailView(LoginRequiredMixin, generic.DetailView):
+    template_name = 'registration/employee_detail.html'
+    context_object_name = 'employee'
+    model = Employee
+
+@login_required(login_url='login')
+@allowed_users(allowed_roles='employee')
+def download_to_excel(request):
+    # Retrieve all items
+    items = Item.objects.all()
+
+    # Create a Pandas DataFrame from the item data
+    data = {
+        'Name': [item.name for item in items],
+        'Category': [item.category for item in items],
+        'Cost': [item.cost for item in items],
+        'Amount': [item.amount for item in items],
+    }
+    df = pd.DataFrame(data)
+
+    # Create an Excel response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=inventory_list.xlsx'
+
+    # Write the DataFrame to the response
+    df.to_excel(response, index=False)
+
+    return response

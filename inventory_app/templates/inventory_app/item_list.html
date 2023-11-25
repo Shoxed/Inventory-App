@@ -7,10 +7,16 @@
     <ul>
     {% for item in item_list %}
       <li>
-        <p> <Strong>{{item.name}}   
+        <p> <Strong>{{item.name}}
+        {% if user.is_authenticated %}
+        {% with employee=user.employee %}  
           <a class="btn btn-sm custom-btn" href="{{item.get_absolute_url}}">View</a>   
           <a class="btn btn-sm custom-btn" href="{% url 'item-delete' pk=item.id %}" role="button">Delete</a>
           <a class="btn btn-sm custom-btn" href="{% url 'item-update' pk=item.id %}" role="button">Update</a>
+          {% endwith %}
+          {% else %}
+          <a class="btn btn-sm custom-btn" href="{{item.get_absolute_url}}">View</a>
+          {% endif %}
         </Strong></p>
       </li>
     {% endfor %}
@@ -18,5 +24,11 @@
   {% else %}
     <p>Inventory is empty.</p>
   {% endif %}
+  {% if user.is_authenticated %}
+  {% with employee=user.employee %}
   <a class="btn custom-btn" href="{% url 'add-item' %}" role="button">New</a>
+  <a class= "btn custom-btn" href="{% url 'download-to-excel' %}" role="button">Download Inventory</a>
+  {% endwith %}
+  {%else %}
+  {% endif %}
 {% endblock %}
