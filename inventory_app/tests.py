@@ -1,10 +1,20 @@
-from django.test import TestCase, SimpleTestCase, Client
+# IMPORTS FOR UNIT TESTS 
+from django.test import TestCase, SimpleTestCase, LiveServerTestCase, Client
 from django.urls import reverse, resolve
 from django.contrib.auth.models import User, Group
 from .models import *
 from .views import *
 from .forms import *
-from django.contrib.messages import get_messages
+
+# IMPORTS FOR SELENIUM
+import time
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import time
+
+# UNITS TEST FOR MODELS, VIEWS, URLS, FORMS
 
 # Test cases for authentication in the inventory app
 class AuthenticationTests(TestCase):
@@ -359,3 +369,64 @@ class UrlsTests(SimpleTestCase):
         # Test the employee detail URL
         url = reverse('user_page', args=[1])
         self.assertEqual(resolve(url).func.view_class, EmployeeDetailView)
+
+# SELENIUM WEBDRIVER TESTS
+
+class SeleniumTests(LiveServerTestCase):
+    def setUp(self):
+        # Create a browser instance
+        self.browser = webdriver.Chrome()
+
+    def tearDown(self):
+        # Close the browser
+        self.browser.quit()
+    
+    def test_navbar(self):
+        # Create a test user
+        test_user = User.objects.create_user(username='testuser', password='testpass')
+        employee = Employee.objects.create(user=test_user, name='Test Employee', position='Tester')
+         # Create a test item
+        test_item = Item.objects.create(name='Test Item', category='Bread', cost=10.0, amount=5)
+
+        # The user goes to the home page of the blog
+        self.browser.get("http://127.0.0.1:8000/")
+        time.sleep(2)
+
+        home_link = By.LINK_TEXT, "Home"
+        inventory_link = By.LINK_TEXT, "Inventory"
+        login_link = By.LINK_TEXT, "Login"
+        logout_link = By.LINK_TEXT, "Logout"
+        account_link = By.PARTIAL_LINK_TEXT, "Account"
+
+        try:
+            self.browser.find_element(*logout_link).click()
+        except:
+            print("Already logged out")
+        time.sleep(1)
+        self.browser.find_element(*inventory_link).click()
+        time.sleep(1)
+        self.browser.find_element(*home_link).click()
+        time.sleep(1)
+        self.browser.find_element(*login_link).click()
+        time.sleep(1)
+        self.browser.find_element(By.ID, 'id_username').send_keys('hixx')
+        time.sleep(1)
+        self.browser.find_element(By.ID, 'id_password').send_keys('jon2002sky')
+        time.sleep(1)
+        self.browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
+        time.sleep(4)
+        self.browser.find_element(*account_link).click()
+    
+    def test_registration(self):
+        self.browser.get("http://127.0.0.1:8000/accounts/register/")
+        time.sleep(2)
+
+        self.browser.find_element(By.NAME, 'username').send_keys('BruceWayne')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'email').send_keys('test@email.com')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'password1').send_keys('qwerfvdsadf')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'password2').send_keys('qwerfvdsadf')
+        time.sleep(2)
+        self.browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()

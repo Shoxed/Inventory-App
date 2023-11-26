@@ -62,7 +62,7 @@
               <a class="nav-link active" aria-current="page" href="{% url 'user_page' pk=employee.pk %}"><strong>Account</strong></a>
         </li>
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="{% url 'logout' %}?next={{ request.path }}"><strong>Logout {{user}}</strong></a>
+            <a class="nav-link active" aria-current="page" href="{% url 'logout' %}?next={{ request.path }}"><strong>Logout</strong></a>
           </li>
             {% endwith %}
         {% else %}
