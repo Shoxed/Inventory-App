@@ -10,14 +10,12 @@ from .forms import *
 import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import time
 
 # UNITS TEST FOR MODELS, VIEWS, URLS, FORMS
 
 # Test cases for authentication in the inventory app
-class AuthenticationTests(TestCase):
+class UserTests(TestCase):
 
     def setUp(self):
         # Create a test user
@@ -382,12 +380,6 @@ class SeleniumTests(LiveServerTestCase):
         self.browser.quit()
     
     def test_navbar(self):
-        # Create a test user
-        test_user = User.objects.create_user(username='testuser', password='testpass')
-        employee = Employee.objects.create(user=test_user, name='Test Employee', position='Tester')
-         # Create a test item
-        test_item = Item.objects.create(name='Test Item', category='Bread', cost=10.0, amount=5)
-
         # The user goes to the home page of the blog
         self.browser.get("http://127.0.0.1:8000/")
         time.sleep(2)
@@ -417,6 +409,17 @@ class SeleniumTests(LiveServerTestCase):
         time.sleep(4)
         self.browser.find_element(*account_link).click()
     
+    def test_login_failure(self):
+        self.browser.get("http://127.0.0.1:8000/accounts/login/")
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'username').send_keys('invaliduser')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'password').send_keys('InvalidPass123')
+        time.sleep(1)
+        self.browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
+
+        self.assertIn("Your username and password didn't match. Please try again.", self.browser.page_source)
+    
     def test_registration(self):
         self.browser.get("http://127.0.0.1:8000/accounts/register/")
         time.sleep(2)
@@ -430,3 +433,26 @@ class SeleniumTests(LiveServerTestCase):
         self.browser.find_element(By.NAME, 'password2').send_keys('qwerfvdsadf')
         time.sleep(2)
         self.browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
+    
+    def test_create_item(self):
+        # Assuming you have a login page
+        self.browser.get("http://127.0.0.1:8000/accounts/login/")
+
+        self.browser.find_element(By.NAME, 'username').send_keys('hixx')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'password').send_keys('jon2002sky')
+        time.sleep(1)
+        self.browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
+        time.sleep(1)
+        # Navigate to the add item page
+        self.browser.get("http://127.0.0.1:8000/inventory/add_item/")
+
+        self.browser.find_element(By.NAME, 'name').send_keys('Test Item')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'category').send_keys('Dairy')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'cost').send_keys('10.99')
+        time.sleep(1)
+        self.browser.find_element(By.NAME, 'amount').send_keys('50')
+        time.sleep(1)
+        self.browser.find_element(By.CSS_SELECTOR, 'button[type="Submit"]').click()

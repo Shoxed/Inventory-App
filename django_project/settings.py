@@ -124,4 +124,5 @@ os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/images/'
 
+# Redirect user to index page when logging inA
 LOGIN_REDIRECT_URL = 'index'
