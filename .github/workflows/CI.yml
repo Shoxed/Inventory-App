@@ -19,7 +19,7 @@ jobs:
         python-version: 3.8
     
     - name: Activate virtual environment
-      run: source djvenv/Scripts/Activate.ps1 
+      run: djvenv/Scripts/Activate.ps1 
 
     - name: Install dependencies
       run: |
