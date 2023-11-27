@@ -435,7 +435,6 @@ class SeleniumTests(LiveServerTestCase):
         self.browser.find_element(By.CSS_SELECTOR, 'input[type="submit"]').click()
     
     def test_create_item(self):
-        # Assuming you have a login page
         self.browser.get("http://127.0.0.1:8000/accounts/login/")
 
         self.browser.find_element(By.NAME, 'username').send_keys('hixx')
