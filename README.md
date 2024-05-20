@@ -1,2 +1,2 @@
 # Inventory-App
-Django Web App to Monitor Inventory of BBQ Business 
+Django Web App to Monitor Food Inventory for BC's BBQ  
